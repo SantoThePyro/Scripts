@@ -1,0 +1,41 @@
+import hou
+obj = hou.node("/obj")
+out = hou.node("/out")
+master_null = hou.node('/obj/Master_Null') 
+for node in hou.selectedNodes():
+
+    node_name = 'In_{name}'.format(name = node.name())
+    cache_name = 'Out_VDB_{name}'.format(name = node.name())
+    export_name = 'Export_{name}'.format(name = node.name())
+    rend_name = 'Render_{name}'.format(name = node.name())
+    mantra_name = '{name}_Render'.format(name = node.name())
+
+
+    
+    
+#render_geo
+
+
+    render_geo = obj.createNode('geo',rend_name)
+    obm_rend = render_geo.createNode('object_merge',node_name)
+    obm_rend.parm('objpath1').set(node.path())
+    pyrovol = render_geo.createNode('pyrobakevolume')
+    pyrovol.setInput(0,obm_rend)
+    null_rend = render_geo.createNode('null','Out_Render')
+    null_rend.setInput(0,pyrovol)
+
+    
+#mantra_out
+
+
+    mantra = out.createNode('ifd',mantra_name)
+    mantra.parm('vobject').set('')
+    mantra.parm('forceobject').set(render_geo.name())
+    mantra.parm('vm_volumequality').set(10)
+    mantra.parm('vm_picture').set('$HIP/render/$OS/$OS.$F4.exr')
+
+
+    
+obj.layoutChildren()
+render_geo.layoutChildren()
+out.layoutChildren()
