@@ -1,0 +1,27 @@
+import hou
+
+node_type = hou.nodeTypeFilter.ObjGeometry
+sop_type = hou.nodeTypeFilter.Sop
+cam_type = hou.nodeTypeFilter.ObjCamera
+lit_type = hou.nodeTypeFilter.ObjLight
+obj = hou.node("/obj")
+
+def mainsop():
+    sop = hou.ui.selectMultipleNodes(node_type_filter = sop_type , title ='Slecte Sop/Multiple Sop')
+    
+    return sop
+sop = mainsop()
+
+
+for n in sop:
+        sop = hou.node(n)
+        node_name = 'In_{name}'.format(name = sop.name())
+        geo = hou.node('/obj').createNode('geo', node_name)
+        obm_node = geo.createNode('object_merge',node_name)
+        obm_node.parm('objpath1').set(sop.path())
+        obm_node.setColor(hou.Color((255,255,0)))
+        
+obj.layoutChildren()
+        
+        
+
