@@ -1,0 +1,89 @@
+import hou
+obj = hou.node("/obj")
+out = hou.node("/out")
+master_null = hou.node('/obj/master_null') 
+for node in hou.selectedNodes():
+
+    node_name = 'In_{name}'.format(name = node.name())
+    cache_name = 'Out_VDB_{name}'.format(name = node.name())
+    export_name = 'Export_{name}'.format(name = node.name())
+    rend_name = 'Render_{name}'.format(name = node.name())
+    mantra_name = '{name}_Render'.format(name = node.name())
+
+#export_geo
+    
+    geo = obj.createNode('geo',export_name)    
+    obm = geo.createNode('object_merge',node_name)
+    obm.parm('objpath1').set(node.path())
+    scale = geo.createNode('xform','Scale')
+    scale.setInput(0,obm)
+    vmix = geo.createNode('volumemix')
+    vmix.setInput(0,scale)
+    cache = geo.createNode('filecache::2.0',cache_name)
+    cache.setInput(0,vmix)
+    cache.parm('filetype').set(1)
+    cache.parm('basename').set(node.name())
+    cache.parm('basedir').set('$HIP/VDB')
+ 
+    
+
+    
+    
+#render_geo
+
+
+    render_geo = obj.createNode('geo',rend_name)
+    obm_rend = render_geo.createNode('object_merge',node_name)
+    obm_rend.parm('objpath1').set(node.path())
+    pyrovol = render_geo.createNode('pyrobakevolume')
+    pyrovol.setInput(0,obm_rend)
+    null_rend = render_geo.createNode('null','Out_Render')
+    null_rend.setInput(0,pyrovol)
+    render_node_path = cache.path() + '/render'
+    
+#mantra_out
+
+
+    mantra = out.createNode('ifd',mantra_name)
+    mantra.parm('vobject').set('')
+    mantra.parm('forceobject').set(render_geo.name())
+    mantra.parm('vm_volumequality').set(10)
+    mantra.parm('vm_picture').set('$HIP/render/$OS/$OS.$F4.exr')
+
+    
+    
+    
+
+    
+    
+    
+#Fetch
+
+    
+    fetch = out.createNode('fetch',cache_name)
+    fetch.parm('source').set(render_node_path)
+
+    
+    
+#color   
+    
+    obm.setColor(hou.Color((255,255,0)))
+    obm_rend.setColor(hou.Color((255,255,0)))
+    render_geo.setColor(hou.Color((1,0,0)))
+    fetch.setColor(hou.Color((0,0,0)))
+    
+    
+    if master_null:
+        inverse_scale = 1 / master_null.parm("scale").eval()
+        dens = master_null.parm("scale").eval()
+        scale.parm('scale').set(inverse_scale)
+        vmix.parm('postmul').set(dens)
+    else:
+        continue
+        
+
+    
+obj.layoutChildren()
+render_geo.layoutChildren()
+geo.layoutChildren()
+out.layoutChildren()
