@@ -1,0 +1,172 @@
+import hou
+
+node_type = hou.nodeTypeFilter.ObjGeometry
+sop_type = hou.nodeTypeFilter.Sop
+cam_type = hou.nodeTypeFilter.ObjCamera
+lit_type = hou.nodeTypeFilter.ObjLight
+
+#########################################################################################################################################################
+
+def show_popup_dialog():
+    result = hou.ui.displayMessage("Do you want to proceed Without Geometry?", buttons=("Yes, I want Geo", "No, Procced Without Geo"))
+    if result == 0:  
+        return True
+    else:  
+        return False
+
+def mainnode():
+    while True:
+        node = hou.ui.selectMultipleNodes(node_type_filter = node_type , title ='Slecte Geo/Multiple Geo')
+        if not node:
+            if not show_popup_dialog():
+                break
+        else:
+            break
+
+    return node
+node = mainnode()
+
+##########################################################################################################################################################
+
+def show_popup_dialog2():
+    result = hou.ui.displayMessage("Do you want to proceed Without SOP Geometry?", buttons=("Yes, I want SOP Geo", "No, Procced Without SOP Geo"))
+    if result == 0:  
+        return True
+    else:  
+        return False
+
+def mainsop():
+    while True:
+        sop = hou.ui.selectMultipleNodes(node_type_filter = sop_type , title ='Slecte Sop/Multiple Sop')
+        if not sop:
+            if not show_popup_dialog2():
+                break
+        else:
+            break
+
+    return sop
+sop = mainsop()
+
+##########################################################################################################################################################
+
+def show_popup_dialog3():
+    result = hou.ui.displayMessage("Do you want to proceed Without Camera?", buttons=("Yes, I want Camera", "No, Procced Without Camera"))
+    if result == 0:  
+        return True
+    else:  
+        return False
+
+def maincam():
+    while True:
+        cam = hou.ui.selectMultipleNodes(node_type_filter = cam_type , title ='Slecte Cam/Multiple Cam')
+        if not cam:
+            if not show_popup_dialog3():
+                break
+        else:
+            break
+
+    return cam
+cam = maincam()
+
+############################################################################################################################################################
+
+def show_popup_dialog4():
+    result = hou.ui.displayMessage("Do you want to proceed Without Lights?", buttons=("Yes, I want Lights", "No, Procced Without Lights"))
+    if result == 0:  
+        return True
+    else:  
+        return False
+
+def mainlight():
+    while True:
+        light = hou.ui.selectMultipleNodes(node_type_filter = lit_type , title ='Slecte Light/Multiple Light')
+        if not light:
+            if not show_popup_dialog4():
+                break
+        else:
+            break
+
+    return light
+light = mainlight()
+
+############################################################################################################################################################
+
+stage = hou.node('/stage')
+
+
+
+if len(node) == 0 and len(sop) == 0:
+    print('Select Any Geometry and SOP')
+else:
+    merge = stage.createNode('merge', 'Merge_Geo')
+
+                  ###########################################
+    
+if len(light) == 0:
+    print('Select Any Light')
+else:
+    litmerge = stage.createNode('merge','Merge_Light')
+    
+                  #############################################
+ 
+
+
+for n in node:
+    node = hou.node(n)
+    node_name = 'In_{name}'.format(name = node.name())
+    stage_node = stage.createNode('sceneimport::2.0',node_name)
+    stage_node.parm('objects').set(node.path())
+    stage_node.setColor(hou.Color((1,0,0))) 
+    merge.setNextInput(stage_node)
+    
+for n in sop:
+    node = hou.node(n)
+    sop_name = 'In_{name}'.format(name = node.name())
+    stage_sop = stage.createNode('sceneimport::2.0',sop_name)
+    stage_sop.parm('objects').set(node.path())
+    stage_sop.setColor(hou.Color((0,1,0))) 
+    merge.setNextInput(stage_sop)
+    
+for n in cam:
+    node = hou.node(n)
+    cam_name = 'In_{name}'.format(name = node.name())
+    stage_cam = stage.createNode('sceneimport::2.0',cam_name)
+    stage_cam.parm('objects').set(node.path())
+    stage_cam.parm('filter').set('!!OBJ/CAMERA!!')
+    stage_cam.setColor(hou.Color((135, 206, 235)))
+    stage_cam.setNextInput(merge)
+    
+
+for n in light:
+    node = hou.node(n)
+    lit_name = 'In_{name}'.format(name = node.name())
+    stage_lit = stage.createNode('sceneimport::2.0',lit_name)
+    stage_lit.parm('objects').set(node.path())
+    stage_lit.parm('filter').set('!!OBJ/LIGHT!!')
+    stage_lit.setColor(hou.Color((255, 255, 0))) 
+    litmerge.setNextInput(stage_lit)
+    
+    
+
+if len(light) != 0:
+    mergeall = stage.createNode('merge', 'Merge_All')
+    mergeall.setInput(0, litmerge)
+    mergeall.setInput(1, stage_cam)
+
+
+renderprop = stage.createNode('karmarenderproperties')
+
+if len(light) == 0 and len(cam) == 0:
+    renderprop.setInput(0, merge)
+elif len(light) == 0:
+    renderprop.setInput(0, stage_cam)
+else:
+    renderprop.setInput(0, mergeall)
+
+
+
+
+karma = stage.createNode('usdrender_rop')
+karma.setInput(0,renderprop)
+
+stage.layoutChildren()    
