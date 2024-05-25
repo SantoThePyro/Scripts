@@ -1,0 +1,75 @@
+import hou
+
+
+file_path = hou.ui.selectFile(title="Select Alembic File", file_type=hou.fileType.Alembic, pattern="*.abc")
+obj = hou.node("/obj")
+
+
+def create_master_null():
+    master_null_path = "/obj/master_null"
+    master_null = hou.node(master_null_path)
+    
+    if master_null is None:
+        
+        scale = hou.ui.readInput('Enter Scene Scale')
+        master_null = hou.node('/obj').createNode('null', 'master_null')
+        master_null.moveToGoodPosition()
+        master_null.setColor(hou.Color((1,0,0)))
+        master_null.parm('scale').set(scale[1])
+        print("Master Null node created")
+    else:
+        print("Master Null node already exists")
+    
+    return master_null
+    
+master_null = create_master_null()
+
+null_name = "null1"
+
+null_node = master_null.node(null_name)
+
+if null_node is None:
+    null_node = master_null.createNode('null', null_name)
+    null_node.moveToGoodPosition()
+
+
+
+
+if file_path:
+        
+        popup = hou.ui.readInput('Type your input')
+
+        
+       
+        geo01_name = f"{popup[1]}_Asset"
+        geo01 = hou.node('/obj').createNode('geo', geo01_name)
+        geo01.setColor(hou.Color((0,1,0.907334)))
+        geo01.setInput(0,master_null)
+        
+        
+        
+        alembic_node = geo01.createNode('alembic', 'alembic1')
+        alembic_node.parm('fileName').set(file_path)
+        alembic_node.moveToGoodPosition()
+        
+        
+        geo02_name = f"{popup[1]}_in"
+        geo02 = hou.node('/obj').createNode('geo', geo02_name)
+        
+        
+        null_name = f"Out_{popup[1]}"
+        null_node = geo01.createNode('null',null_name)
+        null_node.setInput(0, alembic_node)
+        null_node.moveToGoodPosition()
+        
+        
+        object_merge_node = geo02.createNode('object_merge', 'object_merge1')
+        object_merge_node.parm('objpath1').set(null_node.path())
+        object_merge_node.setName(f"in_{popup[1]}", unique_name=True)
+        object_merge_node.parm('xformtype').set(1)
+        object_merge_node.moveToGoodPosition()
+
+        
+        obj.layoutChildren()
+        
+object_merge_node.setColor(hou.Color((255,255,0)))
