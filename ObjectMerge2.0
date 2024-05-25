@@ -1,0 +1,12 @@
+import hou
+obj = hou.node("/obj")
+for node in hou.selectedNodes():
+#    print(node.path())
+    node_name = 'In_{name}'.format(name = node.name())
+#    print (node_name)
+    geo = obj.createNode('geo',node_name)
+    obm = geo.createNode('object_merge',node_name)
+    obm.parm('objpath1').set(node.path())
+    obm.setColor(hou.Color((255,255,0)))
+    
+obj.layoutChildren()
